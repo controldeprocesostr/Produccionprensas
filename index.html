@@ -1,0 +1,2459 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+<title>ERP Prensas — Producción + Avance (PWA)</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1220">
+
+<style>
+  :root{
+    --bg1:#06131a; --bg2:#0a2630;
+    --glass: rgba(255,255,255,.07);
+    --stroke: rgba(255,255,255,.14);
+    --txt:#e9f2ff; --mut: rgba(233,242,255,.72);
+    --acc:#39b8ff;
+
+    --pad:8px;
+    --rad:16px;
+    --gap:8px;
+    --rowH:52px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+  body{
+    color:var(--txt);
+    background:
+      radial-gradient(1100px 650px at 15% 10%, rgba(57,184,255,.22), transparent 55%),
+      radial-gradient(900px 560px at 80% 30%, rgba(0,229,255,.14), transparent 50%),
+      linear-gradient(160deg, var(--bg1), var(--bg2));
+    overflow:hidden;
+  }
+
+  .glass{
+    background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
+    border:1px solid var(--stroke);
+    box-shadow: 0 16px 34px rgba(0,0,0,.35);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius:18px;
+  }
+
+  .app{
+    height:100%;
+    display:grid;
+    grid-template-rows: auto auto 1fr;
+    gap:var(--gap);
+    padding:var(--pad);
+    overflow:hidden;
+  }
+
+  .top{
+    padding:6px 8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    min-height:44px;
+  }
+  .headRow{display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap;}
+  .ttl{margin:0;font-weight:950;font-size:14px;letter-spacing:.2px;white-space:nowrap;}
+  .meta{
+    font-size:10px;color:var(--mut);font-weight:850;margin-top:2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:68vw;
+  }
+
+  .pillBtn{
+    border:1px solid rgba(255,255,255,.16);
+    background: rgba(255,255,255,.06);
+    color:var(--txt);
+    padding:6px 10px;
+    border-radius:999px;
+    font-weight:950;
+    cursor:pointer;
+    font-size:12px;
+    white-space:nowrap;
+  }
+  .pillBtn.active{
+    outline:2px solid rgba(57,184,255,.45);
+    background: rgba(57,184,255,.18);
+    border-color: rgba(57,184,255,.30);
+  }
+  .dateBadge{
+    font-size:12px;color:rgba(233,242,255,.9);font-weight:950;
+    padding:7px 10px;border-radius:14px;border:1px solid rgba(255,255,255,.16);
+    background: rgba(255,255,255,.05);white-space:nowrap;
+  }
+
+  .controlsWrap{padding:8px;}
+  .controls{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1.5fr 1fr;
+    gap:8px;align-items:center;
+  }
+
+  .btn, input[type="date"], input[type="text"], select{
+    border:1px solid rgba(255,255,255,.16);
+    background: rgba(255,255,255,.06);
+    color:var(--txt);
+    padding:10px 10px;
+    border-radius:16px;
+    font-weight:950;
+    cursor:pointer;
+    text-align:center;
+    font-size:13px;
+    outline:none;
+    width:100%;
+    min-width:0;
+  }
+  select{ text-align:left; }
+  input[type="text"]{text-align:left; cursor:text;}
+  .btnPrimary{
+    border-color: rgba(57,184,255,.35);
+    background: rgba(57,184,255,.14);
+  }
+
+  .tableWrap{
+    min-height:0;
+    padding:8px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    overflow:hidden;
+  }
+  .msg{
+    display:none;
+    padding:8px 10px;
+    border-radius:14px;
+    border:1px solid rgba(255,209,102,.25);
+    background: rgba(255,209,102,.08);
+    font-weight:950;
+    font-size:12px;
+  }
+  .pivot{
+    flex:1;
+    min-height:0;
+    width:100%;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    overflow:hidden;
+    display:flex;
+  }
+
+  table{width:100%;height:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;}
+  thead th{
+    background: rgba(7,18,24,.78);
+    color:rgba(233,242,255,.95);
+    font-weight:950;
+    font-size:13px;
+    padding:10px 10px;
+    border-bottom:1px solid rgba(255,255,255,.12);
+    text-align:right;
+    white-space:nowrap;
+  }
+  thead th:first-child{ text-align:left; width:44%; }
+  tbody td{
+    border-bottom:1px solid rgba(255,255,255,.08);
+    text-align:right;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    padding:0 10px;
+    font-size:15px;
+    font-weight:900;
+  }
+  tbody td:first-child{text-align:left;font-weight:950;font-size:15px;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr{height: var(--rowH, 52px);}
+
+  .kgTap{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:100%;height: calc(var(--rowH, 52px) - 10px);
+    border-radius:14px;border:1px solid rgba(57,184,255,.22);
+    background: rgba(57,184,255,.10);
+    cursor:pointer;font-weight:950;font-size:15px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .advBox{padding:8px;}
+  .filtersGrid{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:8px;
+    margin-top:8px;
+  }
+  .advActions{
+    display:flex; gap:8px; justify-content:space-between; flex-wrap:wrap; margin-top:8px;
+  }
+
+  .kpis{padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .kpi{
+    border-radius:14px;border:1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);padding:8px 10px;min-width:0;
+    text-align:center;
+  }
+  .kpi .l{font-size:11px;color:rgba(233,242,255,.70);font-weight:950}
+  .kpi .v{font-size:16px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cards{padding:8px;display:grid;grid-template-columns: 1fr;gap:8px;}
+  .recCard{border-radius:16px;border:1px solid rgba(255,255,255,.12);background: rgba(255,255,255,.06);padding:10px; overflow:hidden;}
+  .recTop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+  .dtBig{font-weight:950;font-size:14px;line-height:1.15;max-width:72%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .badgeSh{font-weight:950;font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid rgba(57,184,255,.22);background: rgba(57,184,255,.10);white-space:nowrap;}
+  .miniGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0;}
+  .mini{border-radius:14px;border:1px solid rgba(255,255,255,.10);background: rgba(0,0,0,.10);padding:8px 10px;min-width:0; overflow:hidden;}
+  .mini .l{font-size:10px;color:rgba(233,242,255,.70);font-weight:950}
+  .mini .v{font-size:13px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mut{color:rgba(233,242,255,.70)}
+  .bigLine{margin-top:6px;font-size:11px;font-weight:900;color:rgba(233,242,255,.68);}
+
+  /* ======= IMG ESTADOS PANEL ======= */
+  .imgPanel{padding:8px; display:none;}
+  .imgRow{display:flex; gap:8px; flex-wrap:wrap;}
+  .imgRow .btn{flex:1; min-width:140px;}
+  .imgBox{
+    margin-top:8px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(0,0,0,.10);
+    padding:8px;
+    overflow:auto;
+    -webkit-overflow-scrolling: touch;
+    max-height:42vh;
+  }
+  .imgPreview{
+    width:100%;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.10);
+    display:block;
+  }
+  .tblEdit{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:8px;
+    font-size:13px;
+  }
+  .tblEdit th,.tblEdit td{
+    border-bottom:1px solid rgba(255,255,255,.10);
+    padding:10px 8px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .tblEdit th{
+    position:sticky; top:0;
+    background: rgba(7,18,24,.82);
+    backdrop-filter: blur(10px);-webkit-backdrop-filter: blur(10px);
+    z-index:2;
+    text-align:left;
+    font-weight:950;
+  }
+  .inpMini{
+    width:100%;
+    border:1px solid rgba(255,255,255,.16);
+    background: rgba(255,255,255,.06);
+    color:var(--txt);
+    padding:9px 10px;
+    border-radius:12px;
+    font-weight:900;
+    outline:none;
+  }
+  .tagOk{border:1px solid rgba(34,197,94,.35); background: rgba(34,197,94,.12); padding:5px 8px; border-radius:999px; font-weight:950; font-size:12px;}
+  .tagBad{border:1px solid rgba(239,68,68,.35); background: rgba(239,68,68,.12); padding:5px 8px; border-radius:999px; font-weight:950; font-size:12px;}
+  .tagMut{border:1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); padding:5px 8px; border-radius:999px; font-weight:950; font-size:12px;}
+
+  /* ========= FULLSCREEN MODAL ========= */
+  .modal{position:fixed; inset:0; display:none; z-index:9999; background: rgba(0,0,0,.55); }
+  .modal .box{
+    position:absolute; inset:0;
+    border-radius:0;
+    padding:8px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    overflow:hidden;
+  }
+  .modalHead{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+    padding:6px 8px;
+  }
+  #modalTitle{
+    font-weight:950;
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    line-height:1.15;
+    max-width: calc(100vw - 260px);
+  }
+  .close{
+    border:none; cursor:pointer;
+    background: rgba(255,255,255,.10);
+    color:var(--txt);
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
+    font-weight:950;
+  }
+  .modalMeta{
+    padding:0 8px;
+    color:rgba(233,242,255,.82);
+    font-weight:900;
+    font-size:12px;
+    line-height:1.25;
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+  }
+  .modalHint{padding:0 8px;font-size:11px;font-weight:900;color:rgba(233,242,255,.68); white-space:normal;}
+
+  .listWrap{
+    flex:1;min-height:0;margin:0 8px;border-radius:16px;
+    border:1px solid rgba(255,255,255,.12);background: rgba(0,0,0,.10);
+    overflow:auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .listTable{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+    font-size:13px;
+  }
+  .listTable th,.listTable td{
+    border-bottom:1px solid rgba(255,255,255,.10);
+    padding:10px 10px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .listTable th{
+    position:sticky; top:0;background: rgba(7,18,24,.82);
+    backdrop-filter: blur(10px);-webkit-backdrop-filter: blur(10px);
+    font-weight:950;z-index:2;
+  }
+  .tapRow{cursor:pointer}
+  .tapRow:hover{background: rgba(57,184,255,.08);}
+  .right{text-align:right !important;}
+  .left{text-align:left !important;}
+
+  .modalFoot{padding:0 8px 6px 8px;display:flex;justify-content:space-between;gap:10px;}
+  .btnMini{
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.08);
+    color:var(--txt);
+    padding:10px 12px;
+    border-radius:14px;
+    font-weight:950;
+    cursor:pointer;
+    min-width:120px;
+  }
+  .btnMini:disabled{opacity:.25; cursor:not-allowed}
+
+  body, .app, .glass, .pivot, .listWrap { overflow-x:hidden !important; }
+  * { max-width:100%; }
+
+  @media (min-width: 1100px){
+    :root{ --pad:10px; --gap:10px; }
+    .ttl{font-size:20px;}
+    .meta{font-size:13px; max-width:unset;}
+    thead th{font-size:18px;}
+    tbody td{font-size:22px;}
+    .kgTap{font-size:22px; border-radius:18px;}
+    .btn, input[type="date"], input[type="text"], select{font-size:16px; padding:14px 12px;}
+    .pillBtn{font-size:14px; padding:9px 12px;}
+    .modalMeta{font-size:14px;}
+    .kpi .v{font-size:22px;}
+    .listTable{font-size:16px;}
+    .listTable th,.listTable td{padding:12px 12px;}
+    .dtBig{font-size:18px;}
+    .badgeSh{font-size:14px;}
+    .mini .v{font-size:18px;}
+    #modalTitle{max-width: calc(100vw - 340px);}
+  }
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <div class="top glass">
+    <div style="min-width:0;">
+      <div class="headRow">
+        <div class="ttl">ERP Prensas</div>
+
+        <button id="tabProd" class="pillBtn active">PRODUCCIÓN</button>
+        <button id="tabAdv" class="pillBtn">AVANCE &amp; PENDIENTE</button>
+
+        <button id="btnA3Prod" class="pillBtn" style="margin-left:6px;">A3</button>
+        <button id="btnAllProd" class="pillBtn active">TODAS</button>
+      </div>
+      <div id="sub" class="meta">Fecha: - | Bloque: Sierra | Filtro: Todas</div>
+    </div>
+    <div class="dateBadge" id="badgeDate">—</div>
+  </div>
+
+  <div class="glass controlsWrap" id="controlsProd">
+    <div class="controls">
+      <button class="btn" id="btnHoy">HOY</button>
+      <button class="btn" id="btnAyer">AYER</button>
+      <input type="date" id="fecha"/>
+      <button class="btn btnPrimary" id="btnCargar">CARGAR</button>
+    </div>
+  </div>
+
+  <div id="viewProd" class="tableWrap glass">
+    <div class="msg" id="msg">—</div>
+    <div class="pivot">
+      <table>
+        <thead>
+          <tr>
+            <th>Prensa</th>
+            <th>Turno 1</th>
+            <th>Turno 2</th>
+            <th>Día</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="viewAdv" class="tableWrap glass" style="display:none;">
+    <div class="glass advBox">
+      <div class="controls" style="grid-template-columns: 1fr 1fr 1.5fr 1fr;">
+        <button class="btn" id="btnAdvHoy">HOY</button>
+        <button class="btn" id="btnAdvAyer">AYER</button>
+        <input type="date" id="fechaAdv"/>
+        <button class="btn btnPrimary" id="btnAdvCargar">CARGAR</button>
+      </div>
+
+      <div class="filtersGrid" id="filtersGrid">
+        <select id="selCliente" class="btn" multiple></select>
+        <select id="selPrioridad" class="btn" multiple></select>
+        <select id="selObs" class="btn" multiple></select>
+        <select id="selPrensaAdv" class="btn" multiple></select>
+        <select id="selMaquina" class="btn" multiple></select>
+        <input id="txtBuscarAdv" type="text" class="btn" placeholder="Buscar ORDEN / DIENUM / RUTA..." />
+      </div>
+
+      <div class="advActions">
+        <button class="pillBtn" id="btnAdvA3">A3</button>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+          <button class="pillBtn" id="btnClearFilters">LIMPIAR FILTROS</button>
+          <button class="pillBtn" id="btnToggleFilters">OCULTAR FILTROS</button>
+          <button class="pillBtn" id="btnExportAdv">EXPORTAR</button>
+          <button class="pillBtn active" id="btnVistaDash">RESUMEN</button>
+          <button class="pillBtn" id="btnVistaCards">CARDS</button>
+          <button class="pillBtn" id="btnVistaImg">IMG ESTADOS</button>
+        </div>
+      </div>
+
+      <div class="meta" id="advMeta" style="margin-top:8px;">Listo para cargar…</div>
+      <div class="msg" id="advMsg" style="display:none; margin-top:8px;"></div>
+    </div>
+
+    <div class="glass" style="padding:8px;">
+      <div class="kpis">
+        <div class="kpi"><div class="l">Matrices Programadas</div><div class="v" id="a_k_mats">0</div></div>
+        <div class="kpi"><div class="l">Matrices Completas</div><div class="v" id="a_k_comp">0</div></div>
+        <div class="kpi"><div class="l">Matrices Pendientes</div><div class="v" id="a_k_pend">0</div></div>
+      </div>
+      <div style="height:8px"></div>
+      <div class="kpis" style="grid-template-columns:repeat(3,1fr);">
+        <div class="kpi"><div class="l">Sobre-extrusión (Órdenes)</div><div class="v" id="a_k_over">0</div></div>
+        <div class="kpi"><div class="l">Producido NO Programado (Órdenes)</div><div class="v" id="a_k_np">0</div></div>
+        <div class="kpi"><div class="l">Kg NO Programado</div><div class="v" id="a_k_npkg">0</div></div>
+      </div>
+    </div>
+
+    <!-- PANEL IMÁGENES -->
+    <div class="glass imgPanel" id="imgPanel">
+      <div class="imgRow">
+        <input id="imgFile" type="file" accept="image/*" class="btn" style="text-align:left;" />
+        <button class="btn btnPrimary" id="btnOcr">LEER (OCR)</button>
+        <button class="btn" id="btnGenImg">GENERAR IMAGEN</button>
+      </div>
+      <div class="meta" id="imgMeta" style="margin-top:8px;">Sube una imagen (WhatsApp) y luego OCR → te crea la columna ESTADO APP al final.</div>
+      <div class="msg" id="imgMsg" style="display:none; margin-top:8px;"></div>
+
+      <div class="imgBox" id="imgBox">
+        <img id="imgPreview" class="imgPreview" alt="preview" style="display:none;" />
+        <div id="imgTableWrap" style="display:none;">
+          <table class="tblEdit" id="tblEdit">
+            <thead>
+              <tr>
+                <th style="width:38%;">ORDEN detectada</th>
+                <th style="width:34%;">Estado APP</th>
+                <th style="width:28%;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tblEditBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:8px; min-height:0; flex:1; overflow:hidden;">
+      <div id="vDash" style="height:100%; overflow:auto;">
+        <div class="cards" id="advDash"></div>
+      </div>
+      <div id="vCards" style="height:100%; overflow:auto; display:none;">
+        <div class="cards" id="advCards"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="modal" class="modal">
+  <div class="box glass">
+    <div class="modalHead">
+      <div id="modalTitle">Detalle</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+        <button class="btnMini" id="btnPng">PNG</button>
+        <button class="btnMini" id="btnShare">Compartir</button>
+        <button class="btnMini" id="btnBack" disabled>Atrás</button>
+        <button class="close" id="closeModal">Cerrar</button>
+      </div>
+    </div>
+
+    <div class="modalMeta" id="modalMeta"></div>
+    <div class="modalHint" id="modalHint"></div>
+
+    <div class="listWrap" id="listWrap">
+      <table class="listTable" id="listTable">
+        <thead id="modalThead"></thead>
+        <tbody id="modalBody"></tbody>
+      </table>
+    </div>
+
+    <div class="modalFoot">
+      <button class="btnMini" id="btnClose2">Cerrar</button>
+      <button class="btnMini" id="btnTop">Arriba</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<script>
+/* =========================
+   PWA register
+========================= */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
+}
+
+/* =========================================================
+   ======================= PRODUCCIÓN =======================
+   ========================================================= */
+const API_URL = "https://optima.tecnoglass.net/api/alutions_production/reporte-extruccion";
+
+/* A3 PRODUCCIÓN: 7-4, 7-5, 7-9, 7-10 */
+const A3_KEYS = ["PRENSA 7-4","PRENSA 7-5","PRENSA 7-9","PRENSA 7-10"];
+const A3_SET = new Set(A3_KEYS);
+
+const pad2 = n => String(n).padStart(2,"0");
+const localYMD = (d) => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const prettyDate = (iso) => { const [y,m,dd]=iso.split("-"); return `${dd}/${m}/${y}`; };
+const norm = (s) => (s ?? "").toString().replace(/\s+/g," ").trim().toUpperCase();
+const toNum = (v) => {
+  const n = parseFloat((v ?? "").toString().replace(",", "."));
+  return isNaN(n) ? 0 : n;
+};
+const fmt0 = (n) => Math.round(n).toLocaleString("es-CO");
+const escHtml = (str)=> String(str ?? "").replace(/[&<>"']/g, m=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+}[m]));
+const safeNum = (v) => {
+  const n = parseFloat(String(v ?? "").replace(",", "."));
+  return isNaN(n) ? 0 : n;
+};
+function normId(v){ return String(v ?? "").trim().replace(/\.0$/, ""); }
+function ordenFromOptima(r){ return `${normId(r.sonum)}-${normId(r.soitemnum)}`; }
+
+function getKg(r){
+  const a = toNum(r.kg ?? r.Kg ?? r.KG);
+  if(a) return a;
+  const b = toNum(r.peso ?? r.Peso ?? r.PESO);
+  if(b) return b;
+  return 0;
+}
+
+let fechaSel = localYMD(new Date());
+let filtroProd = "ALL";
+let rawRows = [];
+let pivot = [];
+
+const elFecha = document.getElementById("fecha");
+const sub = document.getElementById("sub");
+const badgeDate = document.getElementById("badgeDate");
+const msg = document.getElementById("msg");
+const tbody = document.getElementById("tbody");
+
+function showMsg(t){ msg.style.display="block"; msg.textContent = "⚠️ " + t; }
+function hideMsg(){ msg.style.display="none"; msg.textContent=""; }
+
+function normalizePressKey(machineName){
+  const m = norm(machineName);
+  if(m.includes("7-10")) return "PRENSA 7-10";
+  if(m.includes("7-9")) return "PRENSA 7-9";
+  if(m.includes("7-5")) return "PRENSA 7-5";
+  if(m.includes("7-4")) return "PRENSA 7-4";
+  if(m.includes("7-1")) return "PRENSA 7-1";
+
+  if(m.startsWith("PRENSA 10")) return "PRENSA 10";
+  if(m.startsWith("PRENSA 9-2")) return "PRENSA 9-2";
+  if(m.startsWith("PRENSA 9")) return "PRENSA 9";
+  return m;
+}
+
+function setFiltroProd(f){
+  filtroProd = f;
+  document.getElementById("btnA3Prod").classList.toggle("active", f==="A3");
+  document.getElementById("btnAllProd").classList.toggle("active", f==="ALL");
+  renderProd();
+}
+document.getElementById("btnA3Prod").onclick = ()=> setFiltroProd("A3");
+document.getElementById("btnAllProd").onclick = ()=> setFiltroProd("ALL");
+
+document.getElementById("btnHoy").onclick = ()=> { fechaSel = localYMD(new Date()); elFecha.value = fechaSel; cargarProd(); };
+document.getElementById("btnAyer").onclick = ()=> { const d=new Date(); d.setDate(d.getDate()-1); fechaSel = localYMD(d); elFecha.value = fechaSel; cargarProd(); };
+document.getElementById("btnCargar").onclick = ()=> { fechaSel = elFecha.value || fechaSel; cargarProd(); };
+
+async function fetchSierra(fechaISO){
+  const payload = { Fecha_inicial: fechaISO, Fecha_final: fechaISO, Departamento: null };
+  const resp = await fetch(API_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
+  if(!resp.ok){
+    const tx = await resp.text().catch(()=>"-");
+    throw new Error(`Optima HTTP ${resp.status}: ${tx.slice(0,160)}`);
+  }
+  const json = await resp.json().catch(()=> ({}));
+  const data = json?.data || [];
+  const block = data.find(x => Array.isArray(x?.Sierra)) || {};
+  return Array.isArray(block.Sierra) ? block.Sierra : [];
+}
+
+function currentRowsProd(){
+  if(filtroProd==="ALL") return rawRows;
+  return rawRows.filter(r => A3_SET.has(normalizePressKey(r.MachineName)));
+}
+
+function buildPivot(){
+  const rows = currentRowsProd();
+  const map = new Map();
+  for(const r of rows){
+    const press = normalizePressKey(r.MachineName);
+    if(!press) continue;
+    const sh = String(r.shift ?? "").trim();
+    const kg = getKg(r);
+    if(!map.has(press)) map.set(press, { press, t1:0, t2:0, day:0 });
+    const o = map.get(press);
+    o.day += kg;
+    if(sh==="1") o.t1 += kg;
+    else if(sh==="2") o.t2 += kg;
+  }
+  pivot = Array.from(map.values()).sort((a,b)=> a.press.localeCompare(b.press,"es",{numeric:true}));
+}
+
+function updateMeta(){
+  sub.textContent = `Fecha: ${fechaSel} | Bloque: Sierra | Filtro: ${filtroProd==="A3" ? "A3 (7-4, 7-5, 7-9, 7-10)" : "Todas"}`;
+  badgeDate.textContent = prettyDate(fechaSel);
+}
+
+function applyAutoFitProd(){
+  const rowsCount = pivot.length + 1;
+  const pivotBox = document.querySelector("#viewProd .pivot");
+  const thead = document.querySelector("#viewProd thead");
+  if(!pivotBox || !thead) return;
+  const avail = pivotBox.clientHeight - thead.offsetHeight - 10;
+  if(avail <= 0) return;
+  let rowH = Math.floor(avail / rowsCount);
+  rowH = Math.max(30, Math.min(74, rowH));
+  document.documentElement.style.setProperty("--rowH", rowH + "px");
+  const small = rowH <= 34;
+  document.querySelectorAll("#viewProd tbody td, #viewProd .kgTap").forEach(el=>{
+    el.style.fontSize = small ? "13px" : "";
+  });
+}
+
+function renderProd(){
+  updateMeta();
+  buildPivot();
+  tbody.innerHTML = "";
+
+  const rows = currentRowsProd();
+  if(!rawRows.length){ showMsg("No hay registros en bloque Sierra para esa fecha."); return; }
+  if(!rows.length){ showMsg("Hay registros, pero el filtro seleccionado no tiene prensas para esa fecha."); return; }
+  if(!pivot.length){ showMsg(`Hay registros (${rows.length}) pero no pude agrupar por prensa (MachineName).`); return; }
+  hideMsg();
+
+  const sumT1 = pivot.reduce((s,p)=> s+p.t1, 0);
+  const sumT2 = pivot.reduce((s,p)=> s+p.t2, 0);
+  const sumDay = pivot.reduce((s,p)=> s+p.day, 0);
+
+  const esc = (s)=> String(s).replace(/'/g,"\\'");
+
+  const rowsHTML = pivot.map(p=>`
+    <tr>
+      <td>🏭 ${p.press}</td>
+      <td><div class="kgTap" onclick="openProdDetalle('${esc(p.press)}','1')">${fmt0(p.t1)}</div></td>
+      <td><div class="kgTap" onclick="openProdDetalle('${esc(p.press)}','2')">${fmt0(p.t2)}</div></td>
+      <td><div class="kgTap" onclick="openProdDetalle('${esc(p.press)}','DIA')">${fmt0(p.day)}</div></td>
+    </tr>
+  `).join("");
+
+  const totalHTML = `
+    <tr>
+      <td style="font-weight:950;">TOTAL</td>
+      <td><div class="kgTap" onclick="openProdDetalle('_ALL_','1')">${fmt0(sumT1)}</div></td>
+      <td><div class="kgTap" onclick="openProdDetalle('_ALL_','2')">${fmt0(sumT2)}</div></td>
+      <td><div class="kgTap" onclick="openProdDetalle('_ALL_','DIA')">${fmt0(sumDay)}</div></td>
+    </tr>
+  `;
+  tbody.innerHTML = rowsHTML + totalHTML;
+
+  requestAnimationFrame(() => {
+    applyAutoFitProd();
+    requestAnimationFrame(applyAutoFitProd);
+  });
+}
+
+/* =========================================================
+   ===================== MODAL FULLSCREEN ===================
+   ========================================================= */
+const modal = document.getElementById("modal");
+const closeModal = document.getElementById("closeModal");
+const btnClose2 = document.getElementById("btnClose2");
+const btnBack = document.getElementById("btnBack");
+const btnTop = document.getElementById("btnTop");
+const btnPng = document.getElementById("btnPng");
+const btnShare = document.getElementById("btnShare");
+
+const modalTitle = document.getElementById("modalTitle");
+const modalMeta  = document.getElementById("modalMeta");
+const modalHint  = document.getElementById("modalHint");
+const modalThead = document.getElementById("modalThead");
+const modalBody  = document.getElementById("modalBody");
+const listWrap   = document.getElementById("listWrap");
+
+function openModal(){ modal.style.display="block"; }
+function closeAnyModal(){
+  modal.style.display="none";
+  modalStack = [];
+  modalState = null;
+  btnBack.disabled = true;
+  modalBody.innerHTML = "";
+  modalThead.innerHTML = "";
+  modalTitle.textContent = "Detalle";
+  modalMeta.textContent = "";
+  modalHint.textContent = "";
+}
+closeModal.onclick = closeAnyModal;
+btnClose2.onclick = closeAnyModal;
+modal.addEventListener("click", (e)=>{ if(e.target===modal) closeAnyModal(); });
+btnTop.onclick = ()=> { listWrap.scrollTop = 0; };
+
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+function safeFileName(s){
+  return String(s||"captura")
+    .replace(/[\\/:*?"<>|]/g," ")
+    .replace(/\s+/g," ")
+    .trim()
+    .slice(0,100);
+}
+
+/* PNG/SHARE: sin meter el hint */
+async function captureModalContentCanvas(){
+  const box = document.querySelector("#modal .box");
+  const head = box.querySelector(".modalHead");
+  const meta = document.getElementById("modalMeta");
+  const lw = document.getElementById("listWrap");
+
+  const clone = document.createElement("div");
+  clone.style.position = "fixed";
+  clone.style.left = "-99999px";
+  clone.style.top = "0";
+  clone.style.width = box.getBoundingClientRect().width + "px";
+  clone.style.padding = "8px";
+  clone.style.borderRadius = "0";
+  clone.style.background = "transparent";
+
+  const headC = head.cloneNode(true);
+  headC.querySelectorAll("button").forEach(b=>b.remove());
+  clone.appendChild(headC);
+
+  const metaC = meta.cloneNode(true);
+  clone.appendChild(metaC);
+
+  const lwC = lw.cloneNode(true);
+  lwC.style.overflow = "visible";
+  lwC.style.height = lw.scrollHeight + "px";
+  lwC.style.maxHeight = "none";
+  clone.appendChild(lwC);
+
+  document.body.appendChild(clone);
+  await sleep(60);
+
+  const canvas = await html2canvas(clone, {
+    backgroundColor: null,
+    scale: 2,
+    useCORS: true,
+    logging: false,
+    scrollX: 0,
+    scrollY: 0,
+    windowWidth: clone.scrollWidth,
+    windowHeight: clone.scrollHeight
+  });
+
+  clone.remove();
+  return canvas;
+}
+async function downloadCanvas(canvas, filename){
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+btnPng.onclick = async ()=>{
+  try{
+    const canvas = await captureModalContentCanvas();
+    await downloadCanvas(canvas, `${safeFileName(modalTitle.textContent)}.png`);
+  }catch(e){
+    alert("No pude generar PNG: " + (e?.message || e));
+  }
+};
+btnShare.onclick = async ()=>{
+  try{
+    const canvas = await captureModalContentCanvas();
+    const blob = await new Promise(res=>canvas.toBlob(res,"image/png"));
+    if(!blob) throw new Error("No blob");
+    const file = new File([blob], `${safeFileName(modalTitle.textContent)}.png`, {type:"image/png"});
+    if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+      await navigator.share({files:[file], title: modalTitle.textContent});
+    }else{
+      await downloadCanvas(canvas, `${safeFileName(modalTitle.textContent)}.png`);
+    }
+  }catch(e){
+    alert("No pude compartir: " + (e?.message || e));
+  }
+};
+
+function groupBy(rows, keyFn, kgFn){
+  const m = new Map();
+  for(const r of rows){
+    const key0 = (keyFn(r) ?? "").toString().trim();
+    const key = key0 ? key0 : "SIN DATO";
+    if(!m.has(key)) m.set(key, { key, regs:0, kg:0, dies:new Set(), rows:[] });
+    const o = m.get(key);
+    o.regs++;
+    o.kg += (kgFn ? kgFn(r) : getKg(r));
+    const die = (r.dienum ?? r.DIENUM ?? "").toString().trim();
+    if(die) o.dies.add(die);
+    o.rows.push(r);
+  }
+  return Array.from(m.values()).sort((a,b)=> b.kg - a.kg || b.dies.size - a.dies.size || a.key.localeCompare(b.key,"es"));
+}
+
+function renderTable(columns, rows, onTap){
+  modalThead.innerHTML = `<tr>${
+    columns.map(c=>`<th class="${c.align||'left'}" style="width:${c.w||'auto'}">${escHtml(c.label)}</th>`).join("")
+  }</tr>`;
+  modalBody.innerHTML = "";
+  for(const r of rows){
+    const tr = document.createElement("tr");
+    tr.className = onTap ? "tapRow" : "";
+    tr.innerHTML = columns.map(c=>{
+      const v = (typeof c.k === "function") ? c.k(r) : r[c.k];
+      return `<td class="${c.align||'left'}">${escHtml(v)}</td>`;
+    }).join("");
+    if(onTap) tr.onclick = ()=> onTap(r);
+    modalBody.appendChild(tr);
+  }
+}
+
+let modalStack = [];
+let modalState = null;
+function pushState(){
+  if(!modalState) return;
+  modalStack.push(modalState);
+  btnBack.disabled = modalStack.length === 0;
+}
+btnBack.onclick = ()=>{
+  const prev = modalStack.pop();
+  btnBack.disabled = modalStack.length === 0;
+  if(prev){
+    modalState = prev;
+    prev.render();
+  }
+};
+
+/* ====================== DETALLE TIPO "AVANCE" (REUSABLE) ======================
+   Esto es lo que pediste: Producción también muestra el detalle igualito (Campo/Valor)
+*/
+function openOrdenDetalleCampoValor(opts){
+  const {
+    orden,
+    prensa="-",
+    cliente="-",
+    prio="-",
+    matriz="-",
+    finish="-",
+    fechaProg="-",
+    ruta="-",
+    maquina="-",
+    obs="(EN BLANCO)",
+    kgProg=0, kgProd=0, kgPend=0,
+    pzsProg=0, pzsProd=0,
+    estado="—"
+  } = opts || {};
+
+  modalTitle.textContent = `📦 ORDEN ${orden || "-"}`;
+  modalMeta.textContent = `Prensa: ${prensa} | Cliente: ${cliente} | Prio: ${prio} | Matriz: ${matriz}`;
+  modalHint.textContent = "";
+
+  const rows = [
+    {k:"FINISH", v: finish || "-"},
+    {k:"FECHA PROG.", v: fechaProg || "-"},
+    {k:"Kg Programado", v: fmt0(kgProg || 0)},
+    {k:"Kg Producido", v: fmt0(kgProd || 0)},
+    {k:"Kg Pendiente", v: fmt0(kgPend || 0)},
+    {k:"Pzs Programadas", v: fmt0(pzsProg || 0)},
+    {k:"Pzs Producidas", v: fmt0(pzsProd || 0)},
+    {k:"Estado cierre", v: String(estado || "—")},
+    {k:"Obs", v: (obs && String(obs).trim()) ? obs : "(EN BLANCO)"},
+    {k:"Ruta", v: ruta || "-"},
+    {k:"Maquina", v: maquina || "-"},
+  ];
+
+  renderTable(
+    [
+      {k:"k", label:"Campo", align:"left", w:"55%"},
+      {k:"v", label:"Valor", align:"right", w:"45%"},
+    ],
+    rows,
+    null
+  );
+
+  openModal();
+}
+
+/* ====================== PRODUCCIÓN Drill ====================== */
+window.openProdDetalle = function(pressKey, scope){
+  let rows = currentRowsProd();
+  if(pressKey !== "_ALL_") rows = rows.filter(r => normalizePressKey(r.MachineName) === pressKey);
+  if(scope==="1") rows = rows.filter(r => String(r.shift).trim()==="1");
+  if(scope==="2") rows = rows.filter(r => String(r.shift).trim()==="2");
+
+  modalStack = [];
+  modalState = null;
+  btnBack.disabled = true;
+
+  const who = (pressKey === "_ALL_") ? (filtroProd==="A3" ? "A3" : "TODAS") : pressKey;
+  const titleScope = scope==="DIA" ? "DÍA (T1+T2)" : (scope==="1" ? "TURNO 1" : "TURNO 2");
+  const totKg = rows.reduce((s,r)=> s+getKg(r), 0);
+  const dies = new Set(rows.map(r=>String(r.dienum||"").trim()).filter(Boolean)).size;
+
+  modalTitle.textContent = `Clientes — ${who}`;
+  modalMeta.textContent = `Fecha: ${prettyDate(fechaSel)} | ${titleScope} | Matrices: ${fmt0(dies)} | Total: ${fmt0(totKg)} Kg`;
+  modalHint.textContent = "Toca un cliente para ver Prioridades.";
+
+  const renderClientes = ()=>{
+    const groups = groupBy(rows, r=>r.cliente, null);
+    const table = groups.map(g=>({
+      Cliente:g.key,
+      Matrices: g.dies.size,
+      Regs: g.regs,
+      Kg: fmt0(g.kg),
+      _rows: g.rows
+    }));
+
+    renderTable(
+      [
+        {k:"Cliente", label:"Cliente", align:"left", w:"48%"},
+        {k:"Matrices", label:"Matr…", align:"right", w:"16%"},
+        {k:"Regs", label:"Regs", align:"right", w:"16%"},
+        {k:"Kg", label:"Kg", align:"right", w:"20%"},
+      ],
+      [{Cliente:"TOTAL",Matrices:dies,Regs:rows.length,Kg:fmt0(totKg),_rows:rows}, ...table],
+      (r)=>{
+        if(!r._rows) return;
+        pushState();
+        modalState = { render: ()=> renderPrioridades(r.Cliente, r._rows) };
+        renderPrioridades(r.Cliente, r._rows);
+      }
+    );
+    openModal();
+  };
+
+  const renderPrioridades = (cliente, rowsC)=>{
+    modalTitle.textContent = `Prioridades — ${cliente}`;
+    modalHint.textContent = "Toca una prioridad para ver Matrices.";
+    const g2 = groupBy(rowsC, r=>r.prio, null);
+    const totKg2 = rowsC.reduce((s,r)=> s+getKg(r), 0);
+    const dies2 = new Set(rowsC.map(r=>String(r.dienum||"").trim()).filter(Boolean)).size;
+
+    const table = g2.map(g=>({
+      Prioridad:g.key,
+      Matrices:g.dies.size,
+      Regs:g.regs,
+      Kg: fmt0(g.kg),
+      _rows:g.rows
+    }));
+
+    renderTable(
+      [
+        {k:"Prioridad", label:"Prioridad", align:"left", w:"48%"},
+        {k:"Matrices", label:"Matr…", align:"right", w:"16%"},
+        {k:"Regs", label:"Regs", align:"right", w:"16%"},
+        {k:"Kg", label:"Kg", align:"right", w:"20%"},
+      ],
+      [{Prioridad:"TOTAL",Matrices:dies2,Regs:rowsC.length,Kg:fmt0(totKg2),_rows:rowsC}, ...table],
+      (r)=>{
+        if(!r._rows) return;
+        pushState();
+        modalState = { render: ()=> renderMatrices(cliente, r.Prioridad, r._rows) };
+        renderMatrices(cliente, r.Prioridad, r._rows);
+      }
+    );
+  };
+
+  const renderMatrices = (cliente, prio, rowsP)=>{
+    modalTitle.textContent = `Matrices — ${cliente} | ${prio}`;
+    modalHint.textContent = "Toca una matriz para ver Órdenes.";
+    const g3 = groupBy(rowsP, r=>r.dienum, null);
+    const totKg3 = rowsP.reduce((s,r)=> s+getKg(r), 0);
+
+    const table = g3.map(g=>({
+      DIENUM:g.key,
+      Regs:g.regs,
+      Kg: fmt0(g.kg),
+      _rows:g.rows
+    }));
+
+    renderTable(
+      [
+        {k:"DIENUM", label:"DIENUM", align:"left", w:"52%"},
+        {k:"Regs", label:"Regs", align:"right", w:"18%"},
+        {k:"Kg", label:"Kg", align:"right", w:"30%"},
+      ],
+      [{DIENUM:"TOTAL",Regs:rowsP.length,Kg:fmt0(totKg3),_rows:rowsP}, ...table],
+      (r)=>{
+        if(!r._rows) return;
+        pushState();
+        modalState = { render: ()=> renderOrdenes(r.DIENUM, r._rows) };
+        renderOrdenes(r.DIENUM, r._rows);
+      }
+    );
+  };
+
+  const renderOrdenes = (die, rowsD)=>{
+    modalTitle.textContent = `Órdenes — ${die}`;
+    modalHint.textContent = "Toca una orden para ver detalle.";
+
+    const m = new Map();
+    for(const r of rowsD){
+      const ord = ordenFromOptima(r);
+      if(!m.has(ord)) m.set(ord, {ORDEN:ord, Kg:0, Pc:0, rows:[]});
+      const o = m.get(ord);
+      o.Kg += getKg(r);
+      o.Pc += safeNum(r.pc ?? r.Pc ?? r.PC ?? 0);
+      o.rows.push(r);
+    }
+    const list = Array.from(m.values()).sort((a,b)=> b.Kg-a.Kg || a.ORDEN.localeCompare(b.ORDEN,"es",{numeric:true}));
+
+    renderTable(
+      [
+        {k:(x)=> x.ORDEN, label:"ORDEN", align:"left", w:"52%"},
+        {k:(x)=> fmt0(x.Pc), label:"Pzs", align:"right", w:"18%"},
+        {k:(x)=> fmt0(x.Kg), label:"Kg", align:"right", w:"30%"},
+      ],
+      list,
+      (x)=>{
+        pushState();
+        modalState = { render: ()=> renderProdOrdenDetalleCampoValor(x) };
+        renderProdOrdenDetalleCampoValor(x);
+      }
+    );
+  };
+
+  /* ======== AQUÍ ESTÁ LO QUE PEDISTE ========
+     Producción: el detalle de orden ahora se ve EXACTAMENTE como Avance (Campo/Valor).
+  */
+  const renderProdOrdenDetalleCampoValor = (ordObj)=>{
+    const ord = ordObj.ORDEN;
+    const rowsO = ordObj.rows || [];
+
+    // totales producción (Optima)
+    const kgProd = rowsO.reduce((s,r)=>s+getKg(r),0);
+    const pzsProd = rowsO.reduce((s,r)=>s+safeNum(r.pc ?? r.Pc ?? r.PC ?? 0),0);
+
+    // metadatos (si existen)
+    const press = (rowsO[0] ? normalizePressKey(rowsO[0].MachineName) : "-");
+    const cli = (rowsO[0]?.cliente ?? rowsO[0]?.CLIENTE ?? "-");
+    const prio = (rowsO[0]?.prio ?? rowsO[0]?.PRIORIDAD ?? "-");
+    const die = (rowsO[0]?.dienum ?? rowsO[0]?.DIENUM ?? "-");
+
+    // En producción NO tenemos Kg programado / Pzs programadas (no viene del API de Sierra),
+    // entonces lo dejamos en 0 y estado como "PRODUCIDO" (para que se vea igual)
+    openOrdenDetalleCampoValor({
+      orden: ord,
+      prensa: press,
+      cliente: String(cli).trim(),
+      prio: String(prio).trim(),
+      matriz: String(die).trim(),
+      finish: "-",
+      fechaProg: "-",
+      kgProg: 0,
+      kgProd,
+      kgPend: 0,
+      pzsProg: 0,
+      pzsProd,
+      estado: "PRODUCIDO",
+      obs: "(EN BLANCO)",
+      ruta: "-",
+      maquina: "-"
+    });
+
+    // Nota: si quieres que en Producción también salga "Kg Programado / Estado cierre real",
+    // eso se logra cruzando contra PROGRAMAS (advRowsOrden). Te lo dejo listo más abajo.
+    // (sin cambiarte nada hoy).
+  };
+
+  renderClientes();
+};
+
+/* ===================== CARGA PRODUCCIÓN ===================== */
+async function cargarProd(){
+  showMsg("Cargando Sierra…");
+  try{
+    const rows = await fetchSierra(fechaSel);
+    rawRows = (rows||[]).map(r=>({
+      ...r,
+      MachineName: (r.MachineName ?? r.machineName ?? r.machine ?? "").toString(),
+      shift: (r.shift ?? r.Shift ?? r.turno ?? "").toString().trim(),
+    }));
+    hideMsg();
+    renderProd();
+  }catch(err){
+    console.error(err);
+    showMsg("Error cargando Sierra: " + (err?.message || err));
+  }
+}
+window.addEventListener("resize", ()=> {
+  requestAnimationFrame(() => {
+    applyAutoFitProd();
+    requestAnimationFrame(applyAutoFitProd);
+  });
+});
+
+elFecha.value = fechaSel;
+cargarProd();
+
+/* =========================================================
+   =================== AVANCE & PENDIENTE ===================
+   ========================================================= */
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzWaWO_PhyfggW0ZxpnHbMAu3oOEQ74bR9u_YbcOSfVxWMzdUN29cUA4W5nQr9zT_VA/exec";
+const BACKEND_TOKEN = "GM2026_ALUTIONS_SUPER_TOKEN";
+
+const tabProd = document.getElementById("tabProd");
+const tabAdv  = document.getElementById("tabAdv");
+const viewProd = document.getElementById("viewProd");
+const viewAdv  = document.getElementById("viewAdv");
+const controlsProd = document.getElementById("controlsProd");
+
+function setTab(which){
+  const isProd = which === "PROD";
+  tabProd.classList.toggle("active", isProd);
+  tabAdv.classList.toggle("active", !isProd);
+  viewProd.style.display = isProd ? "" : "none";
+  viewAdv.style.display  = isProd ? "none" : "";
+  controlsProd.style.display = isProd ? "" : "none";
+  document.getElementById("btnA3Prod").style.display  = isProd ? "" : "none";
+  document.getElementById("btnAllProd").style.display = isProd ? "" : "none";
+  if(!isProd){
+    badgeDate.textContent = prettyDate(advFechaSel);
+    sub.textContent = `Vista: Avance & Pendiente | Cruce: PROGRAMAS.ORDEN vs Optima (sonum-soitemnum)`;
+  }else{
+    updateMeta();
+  }
+}
+tabProd.onclick = ()=> setTab("PROD");
+tabAdv.onclick  = ()=> setTab("ADV");
+
+const elFechaAdv = document.getElementById("fechaAdv");
+const advMeta = document.getElementById("advMeta");
+const advMsg = document.getElementById("advMsg");
+function showAdvMsg(t){ advMsg.style.display="block"; advMsg.textContent = "⚠️ " + t; }
+function hideAdvMsg(){ advMsg.style.display="none"; advMsg.textContent=""; }
+
+const selCliente = document.getElementById("selCliente");
+const selPrioridad = document.getElementById("selPrioridad");
+const selObs = document.getElementById("selObs");
+const selPrensaAdv = document.getElementById("selPrensaAdv");
+const selMaquina = document.getElementById("selMaquina");
+const txtBuscarAdv = document.getElementById("txtBuscarAdv");
+const btnExportAdv = document.getElementById("btnExportAdv");
+const btnAdvA3 = document.getElementById("btnAdvA3");
+
+const btnAdvHoy = document.getElementById("btnAdvHoy");
+const btnAdvAyer = document.getElementById("btnAdvAyer");
+const btnAdvCargar = document.getElementById("btnAdvCargar");
+
+const btnVistaCards = document.getElementById("btnVistaCards");
+const btnVistaDash  = document.getElementById("btnVistaDash");
+const btnVistaImg   = document.getElementById("btnVistaImg");
+
+const btnToggleFilters = document.getElementById("btnToggleFilters");
+const filtersGrid = document.getElementById("filtersGrid");
+const btnClearFilters = document.getElementById("btnClearFilters");
+
+const a_k_mats = document.getElementById("a_k_mats");
+const a_k_comp = document.getElementById("a_k_comp");
+const a_k_pend = document.getElementById("a_k_pend");
+const a_k_over = document.getElementById("a_k_over");
+const a_k_np   = document.getElementById("a_k_np");
+const a_k_npkg = document.getElementById("a_k_npkg");
+
+const advCards = document.getElementById("advCards");
+const advDash  = document.getElementById("advDash");
+
+let advFechaSel = localYMD(new Date());
+elFechaAdv.value = advFechaSel;
+
+let programasRaw = [];
+let prodRows2d = [];
+let advRowsOrden = [];
+let advByDie = [];
+let advByPressPend = [];
+let advByPressComp = [];
+let advOverOrders = [];
+let advNoProgOrders = [];
+let advNoProgDetails = [];
+
+let viewMode = localStorage.getItem("avance_view") || "DASH";
+let advA3Only = localStorage.getItem("avance_a3") === "1";
+let filtersHidden = localStorage.getItem("avance_fhide") === "1";
+
+/* A3 AVANCE: 7-4, 7-5, 7-9, 7-10 */
+const A3_ADV_SET = new Set(["PRENSA 7-4","PRENSA 7-5","PRENSA 7-9","PRENSA 7-10"]);
+
+function setFiltersHidden(h){
+  filtersHidden = !!h;
+  localStorage.setItem("avance_fhide", filtersHidden ? "1":"0");
+  filtersGrid.style.display = filtersHidden ? "none" : "";
+  btnToggleFilters.textContent = filtersHidden ? "MOSTRAR FILTROS" : "OCULTAR FILTROS";
+}
+btnToggleFilters.onclick = ()=> setFiltersHidden(!filtersHidden);
+setFiltersHidden(filtersHidden);
+
+/* vistas: DASH / CARDS / IMG */
+function setViewMode(m, fromUser=false){
+  viewMode = m;
+  localStorage.setItem("avance_view", m);
+
+  document.getElementById("vDash").style.display   = (m==="DASH")  ? "" : "none";
+  document.getElementById("vCards").style.display  = (m==="CARDS") ? "" : "none";
+  document.getElementById("imgPanel").style.display= (m==="IMG")   ? "" : "none";
+
+  btnVistaDash.classList.toggle("active",  m==="DASH");
+  btnVistaCards.classList.toggle("active", m==="CARDS");
+  btnVistaImg.classList.toggle("active",   m==="IMG");
+
+  renderAvance();
+
+  if(m==="IMG" && fromUser){
+    setTimeout(()=>{
+      try{ document.getElementById("imgFile")?.click(); }catch(_){}
+    }, 120);
+  }
+}
+btnVistaDash.onclick  = ()=> setViewMode("DASH", true);
+btnVistaCards.onclick = ()=> setViewMode("CARDS", true);
+btnVistaImg.onclick   = ()=> setViewMode("IMG", true);
+setViewMode(viewMode, false);
+
+function setAdvA3(on){
+  advA3Only = !!on;
+  localStorage.setItem("avance_a3", advA3Only ? "1" : "0");
+  btnAdvA3.classList.toggle("active", advA3Only);
+  recalcAndRender();
+}
+btnAdvA3.onclick = ()=> setAdvA3(!advA3Only);
+btnAdvA3.classList.toggle("active", advA3Only);
+
+btnAdvHoy.onclick = ()=> { advFechaSel = localYMD(new Date()); elFechaAdv.value = advFechaSel; badgeDate.textContent = prettyDate(advFechaSel); cargarAvance(); };
+btnAdvAyer.onclick = ()=> { const d=new Date(); d.setDate(d.getDate()-1); advFechaSel = localYMD(d); elFechaAdv.value = advFechaSel; badgeDate.textContent = prettyDate(advFechaSel); cargarAvance(); };
+btnAdvCargar.onclick = ()=> { advFechaSel = elFechaAdv.value || advFechaSel; badgeDate.textContent = prettyDate(advFechaSel); cargarAvance(); };
+
+function onAnyFilterChange(){ recalcAndRender(); }
+selCliente.onchange = onAnyFilterChange;
+selPrioridad.onchange = onAnyFilterChange;
+selObs.onchange = onAnyFilterChange;
+selPrensaAdv.onchange = onAnyFilterChange;
+selMaquina.onchange = onAnyFilterChange;
+txtBuscarAdv.oninput = onAnyFilterChange;
+
+btnExportAdv.onclick = ()=> exportAvanceCSV();
+
+btnClearFilters.onclick = ()=>{
+  clearMulti(selCliente);
+  clearMulti(selPrioridad);
+  clearMulti(selObs);
+  clearMulti(selPrensaAdv);
+  clearMulti(selMaquina);
+  txtBuscarAdv.value = "";
+  recalcAndRender();
+};
+
+function ymdMinus1(ymd){
+  const [y,m,d]=ymd.split("-").map(Number);
+  const dt=new Date(y, m-1, d);
+  dt.setDate(dt.getDate()-1);
+  return localYMD(dt);
+}
+
+async function fetchProgramasLatest(){
+  const url = `${BACKEND_URL}?action=programas&token=${encodeURIComponent(BACKEND_TOKEN)}`;
+  const resp = await fetch(url);
+  if(!resp.ok){
+    const tx = await resp.text().catch(()=>"-");
+    throw new Error(`BACKEND programas HTTP ${resp.status}: ${tx.slice(0,160)}`);
+  }
+  const data = await resp.json().catch(()=> ([]));
+  return Array.isArray(data) ? data : [];
+}
+async function fetchMeta(){
+  const url = `${BACKEND_URL}?action=meta&token=${encodeURIComponent(BACKEND_TOKEN)}`;
+  const resp = await fetch(url);
+  if(!resp.ok){
+    const tx = await resp.text().catch(()=>"-");
+    throw new Error(`BACKEND meta HTTP ${resp.status}: ${tx.slice(0,160)}`);
+  }
+  return await resp.json().catch(()=> ({}));
+}
+async function fetchSierraRango(fechaIni, fechaFin){
+  const payload = { Fecha_inicial: fechaIni, Fecha_final: fechaFin, Departamento: null };
+  const resp = await fetch(API_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
+  if(!resp.ok){
+    const tx = await resp.text().catch(()=>"-");
+    throw new Error(`Optima rango HTTP ${resp.status}: ${tx.slice(0,160)}`);
+  }
+  const json = await resp.json().catch(()=> ({}));
+  const data = json?.data || [];
+  const block = data.find(x => Array.isArray(x?.Sierra)) || {};
+  return Array.isArray(block.Sierra) ? block.Sierra : [];
+}
+
+function obsNorm(v){
+  const t = String(v ?? "").trim();
+  return t ? t : "(EN BLANCO)";
+}
+
+/* MULTI SELECT */
+function setMultiOptions(selectEl, values, allLabel){
+  const prev = getMultiValues(selectEl);
+  selectEl.innerHTML = "";
+
+  const optAll = document.createElement("option");
+  optAll.value = "_ALL_";
+  optAll.textContent = allLabel;
+  selectEl.appendChild(optAll);
+
+  for(const v of values){
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = v;
+    selectEl.appendChild(o);
+  }
+
+  if(prev.length){
+    for(const opt of selectEl.options){
+      opt.selected = prev.includes(opt.value);
+    }
+  }
+
+  if(getMultiValues(selectEl).length === 0) selectOnlyAll(selectEl);
+  enforceAllRule(selectEl);
+}
+function getMultiValues(selectEl){
+  return Array.from(selectEl.options).filter(o=>o.selected).map(o=>o.value);
+}
+function selectOnlyAll(selectEl){
+  for(const opt of selectEl.options){ opt.selected = (opt.value === "_ALL_"); }
+}
+function clearMulti(selectEl){
+  selectOnlyAll(selectEl);
+}
+function enforceAllRule(selectEl){
+  const vals = getMultiValues(selectEl);
+  if(vals.includes("_ALL_") && vals.length > 1) selectOnlyAll(selectEl);
+}
+[selCliente, selPrioridad, selObs, selPrensaAdv, selMaquina].forEach(sel=>{
+  sel.addEventListener("change", ()=> enforceAllRule(sel));
+});
+function multiMatch(selectedValues, v){
+  if(!selectedValues || !selectedValues.length) return true;
+  if(selectedValues.includes("_ALL_")) return true;
+  return selectedValues.includes(v);
+}
+
+function applyFilters(rows){
+  const cVals = getMultiValues(selCliente);
+  const pVals = getMultiValues(selPrioridad);
+  const oVals = getMultiValues(selObs);
+  const prVals = getMultiValues(selPrensaAdv);
+  const mqVals = getMultiValues(selMaquina);
+  const q = (txtBuscarAdv.value||"").trim().toUpperCase();
+
+  return rows.filter(r=>{
+    const CLIENTE = String(r.CLIENTE||"").trim();
+    const PRIORIDAD = String(r.PRIORIDAD||"").trim();
+    const OBS = obsNorm(r.OBSERVACION || r.OBSERVACION_2);
+    const PRENSA = normalizePressKey(r.PRENSA||"");
+    const MAQ = String(r.LINEA||r.MAQUINA||"").trim() || "-";
+
+    if(advA3Only && !A3_ADV_SET.has(PRENSA)) return false;
+
+    if(!multiMatch(cVals, CLIENTE)) return false;
+    if(!multiMatch(pVals, PRIORIDAD)) return false;
+    if(!multiMatch(oVals, OBS)) return false;
+    if(!multiMatch(prVals, PRENSA)) return false;
+    if(!multiMatch(mqVals, MAQ)) return false;
+
+    if(q){
+      const ORDEN = String(r.ORDEN||"").toUpperCase();
+      const DIENUM = String(r.DIENUM||"").toUpperCase();
+      const RUTA = String(r.RUTA||"").toUpperCase();
+      if(!ORDEN.includes(q) && !DIENUM.includes(q) && !RUTA.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function buildProducedMap(rows){
+  const m = new Map();
+  for(const r of rows){
+    const orden = ordenFromOptima(r);
+    if(!orden || orden === "-") continue;
+    const kg = getKg(r);
+    const pc = safeNum(r.pc ?? r.Pc ?? r.PC ?? 0);
+    if(!m.has(orden)) m.set(orden, { kg:0, pc:0 });
+    const o = m.get(orden);
+    o.kg += kg;
+    o.pc += pc;
+  }
+  return m;
+}
+
+function calcOrdenStatus(prog, prod){
+  const KGS_prog = safeNum(prog.KGS);
+  const PZS_prog = safeNum(prog.PZS);
+
+  const KGS_prod = prod?.kg || 0;
+  const PZS_prod = prod?.pc || 0;
+
+  const sinProducir = (KGS_prod <= 0 && PZS_prod <= 0);
+
+  let cerrada = false;
+  if(PZS_prog > 0){
+    cerrada = (!sinProducir) && (PZS_prod >= PZS_prog);
+  }else{
+    cerrada = (!sinProducir) && (KGS_prog > 0 ? (KGS_prod >= KGS_prog) : (KGS_prod > 0));
+  }
+
+  const parcial = (!sinProducir) && !cerrada;
+  const estado = cerrada ? "CERRADA" : (parcial ? "PARCIAL" : "SIN PRODUCIR");
+
+  const PZS_allow = safeNum(prog["%PZS"]);
+  const KGS_allow = safeNum(prog["%KGS"]);
+
+  const over = (PZS_allow > 0) ? (PZS_prod > PZS_allow + 1e-9) : false;
+  const overKg = over ? Math.max(0, (KGS_prod||0) - (KGS_allow||0)) : 0;
+
+  const kgPendiente = (!cerrada && KGS_prog > 0) ? Math.max(0, KGS_prog - KGS_prod) : 0;
+
+  const kgResumenPend = (!cerrada) ? kgPendiente : 0;
+  const kgResumenComp = (cerrada) ? (KGS_prog||0) : 0;
+
+  return {
+    KGS_prog,PZS_prog,KGS_prod,PZS_prod,
+    cerrada,parcial,sinProducir,estado,
+    PZS_allow, KGS_allow, over, overKg,
+    kgPendiente,
+    kgResumenPend, kgResumenComp
+  };
+}
+
+/* ===== Recompute ===== */
+function recompute(){
+  if(!Array.isArray(programasRaw) || programasRaw.length===0){
+    advRowsOrden = [];
+    advByDie = [];
+    advByPressPend = [];
+    advByPressComp = [];
+    advOverOrders = [];
+    advNoProgOrders = [];
+    advNoProgDetails = [];
+    a_k_mats.textContent = "0";
+    a_k_comp.textContent = "0";
+    a_k_pend.textContent = "0";
+    a_k_over.textContent = "0";
+    a_k_np.textContent = "0";
+    a_k_npkg.textContent = "0";
+    return;
+  }
+
+  const clientes = Array.from(new Set(programasRaw.map(r=>String(r.CLIENTE||"").trim()).filter(Boolean)))
+    .sort((a,b)=>a.localeCompare(b,"es"));
+  const prios = Array.from(new Set(programasRaw.map(r=>String(r.PRIORIDAD||"").trim()).filter(Boolean)))
+    .sort((a,b)=>a.localeCompare(b,"es",{numeric:true}));
+  const obsVals = Array.from(new Set(programasRaw.map(r=>obsNorm(r.OBSERVACION || r.OBSERVACION_2))))
+    .sort((a,b)=>a.localeCompare(b,"es"));
+
+  const prensasVals = Array.from(new Set(programasRaw.map(r=>normalizePressKey(r.PRENSA)).filter(Boolean)))
+    .sort((a,b)=>a.localeCompare(b,"es",{numeric:true}));
+  const maqVals = Array.from(new Set(programasRaw.map(r=>String(r.LINEA||r.MAQUINA||"").trim()||"-").filter(Boolean)))
+    .sort((a,b)=>a.localeCompare(b,"es"));
+
+  setMultiOptions(selCliente, clientes, "CLIENTE: TODOS");
+  setMultiOptions(selPrioridad, prios, "PRIORIDAD: TODAS");
+  setMultiOptions(selObs, obsVals, "OBSERVACIÓN: TODAS");
+  setMultiOptions(selPrensaAdv, prensasVals, "PRENSA: TODAS");
+  setMultiOptions(selMaquina, maqVals, "MAQUINA: TODAS");
+
+  const progs = applyFilters(programasRaw);
+  const prodMap = buildProducedMap(prodRows2d);
+
+  const outOrden = [];
+  for(const r of progs){
+    const orden = String(r.ORDEN||"").trim();
+    if(!orden) continue;
+
+    const prod = prodMap.get(orden);
+    const st = calcOrdenStatus(r, prod);
+
+    const prensa = normalizePressKey(r.PRENSA||"") || "SIN PRENSA";
+    const maquina = String(r.LINEA||"").trim() || String(r.MAQUINA||"").trim() || "-";
+
+    outOrden.push({
+      ORDEN: orden,
+      DIENUM: String(r.DIENUM||"").trim() || "SIN DIENUM",
+      CLIENTE: String(r.CLIENTE||"").trim(),
+      PRIORIDAD: String(r.PRIORIDAD||"").trim(),
+      PRENSA: prensa,
+      MAQUINA: maquina,
+      OBSERVACION: obsNorm(r.OBSERVACION || r.OBSERVACION_2),
+      RUTA: String(r.RUTA||"").trim(),
+      FINISH: String(r.FINISH||"").trim(),
+      FECHA_PROG: String(r.FECHA_PROG || r.FECHA || r["FECHA PROG"] || "").trim(),
+      ...st
+    });
+  }
+  advRowsOrden = outOrden;
+
+  const dieMap = new Map();
+  for(const o of outOrden){
+    const die = o.DIENUM || "SIN DIENUM";
+    if(!dieMap.has(die)){
+      dieMap.set(die, {
+        DIENUM:die,
+        ordTot:0,
+        ordCerr:0,
+        KgPend:0,
+        KgComp:0
+      });
+    }
+    const d = dieMap.get(die);
+    d.ordTot += 1;
+    if(o.cerrada) d.ordCerr += 1;
+    d.KgPend += (o.kgResumenPend||0);
+    d.KgComp += (o.kgResumenComp||0);
+  }
+
+  advByDie = Array.from(dieMap.values()).map(d=>{
+    const completa = d.ordCerr === d.ordTot && d.ordTot>0;
+    const estado = completa ? "✅ COMPLETA" : "⏳ PENDIENTE";
+    return {...d, completa, estado};
+  }).sort((a,b)=>(a.completa-b.completa) || (b.KgPend-a.KgPend) || a.DIENUM.localeCompare(b.DIENUM,"es",{numeric:true}));
+
+  const matsTot = advByDie.length;
+  const matsComp = advByDie.filter(x=>x.completa).length;
+  const matsPend = matsTot - matsComp;
+
+  a_k_mats.textContent = fmt0(matsTot);
+  a_k_comp.textContent = fmt0(matsComp);
+  a_k_pend.textContent = fmt0(matsPend);
+
+  advOverOrders = outOrden.filter(o=>o.over);
+  a_k_over.textContent = fmt0(advOverOrders.length);
+
+  const programaSetAll = new Set(programasRaw.map(r=>String(r.ORDEN||"").trim()).filter(Boolean));
+  const prodMapAll = buildProducedMap(prodRows2d);
+  const notProg = [];
+  const details = [];
+  for(const [orden, agg] of prodMapAll.entries()){
+    if(!programaSetAll.has(orden)){
+      notProg.push({ORDEN:orden, Kg:agg.kg, Pzs:agg.pc});
+    }
+  }
+  notProg.sort((a,b)=> b.Kg-a.Kg || b.Pzs-a.Pzs || a.ORDEN.localeCompare(b.ORDEN,"es",{numeric:true}));
+  advNoProgOrders = notProg;
+
+  const npSet = new Set(notProg.map(x=>x.ORDEN));
+  for(const r of prodRows2d){
+    const ord = ordenFromOptima(r);
+    if(!npSet.has(ord)) continue;
+    details.push({
+      ORDEN: ord,
+      PRENSA: normalizePressKey(r.MachineName || r.machineName || r.machine || "SIN PRENSA"),
+      CLIENTE: String(r.cliente || r.CLIENTE || "SIN CLIENTE").trim(),
+      PRIORIDAD: String(r.prio || r.PRIORIDAD || "SIN PRIORIDAD").trim(),
+      DIENUM: String(r.dienum || r.DIENUM || "SIN DIENUM").trim(),
+      Kg: getKg(r),
+      Pzs: safeNum(r.pc ?? r.Pc ?? r.PC ?? 0),
+      Shift: String(r.shift ?? "").trim() || "-",
+      Dt: String(r.dt || r.fecha || r.Fecha || "").trim() || "-"
+    });
+  }
+  advNoProgDetails = details;
+
+  a_k_np.textContent = fmt0(notProg.length);
+  a_k_npkg.textContent = fmt0(notProg.reduce((s,x)=>s+x.Kg,0));
+
+  const dieToInfo = new Map();
+  for(const o of outOrden){
+    const die = o.DIENUM || "SIN DIENUM";
+    if(!dieToInfo.has(die)){
+      dieToInfo.set(die, { DIENUM: die, PRENSA: o.PRENSA || "SIN PRENSA", rows: [] });
+    }
+    dieToInfo.get(die).rows.push(o);
+  }
+
+  const dieCompleteSet = new Set(advByDie.filter(x=>x.completa).map(x=>x.DIENUM));
+  const pendMap = new Map();
+  const compMap = new Map();
+
+  for(const info of dieToInfo.values()){
+    const pr = info.PRENSA || "SIN PRENSA";
+    const die = info.DIENUM;
+
+    const isComp = dieCompleteSet.has(die);
+
+    const kgPendDie = info.rows.reduce((s,x)=> s + (x.kgResumenPend||0), 0);
+    const kgCompDie = info.rows.reduce((s,x)=> s + (x.kgResumenComp||0), 0);
+
+    if(isComp){
+      if(!compMap.has(pr)) compMap.set(pr, {PRENSA:pr, Kg:0, Dies:new Set(), rows:[]});
+      const x = compMap.get(pr);
+      x.Kg += kgCompDie;
+      x.Dies.add(die);
+      x.rows.push(...info.rows);
+    }else{
+      if(!pendMap.has(pr)) pendMap.set(pr, {PRENSA:pr, Kg:0, Dies:new Set(), rows:[]});
+      const x = pendMap.get(pr);
+      x.Kg += kgPendDie;
+      x.Dies.add(die);
+      x.rows.push(...info.rows);
+    }
+  }
+
+  advByPressPend = Array.from(pendMap.values())
+    .map(x=>({PRENSA:x.PRENSA, Kg:x.Kg, Matrices:x.Dies.size, _rows:x.rows}))
+    .sort((a,b)=> b.Kg-a.Kg || a.PRENSA.localeCompare(b.PRENSA,"es",{numeric:true}));
+
+  advByPressComp = Array.from(compMap.values())
+    .map(x=>({PRENSA:x.PRENSA, Kg:x.Kg, Matrices:x.Dies.size, _rows:x.rows}))
+    .sort((a,b)=> b.Kg-a.Kg || a.PRENSA.localeCompare(b.PRENSA,"es",{numeric:true}));
+}
+
+function openModalTable(title, meta, hint, columns, rows, onTapRow){
+  modalTitle.textContent = title;
+  modalMeta.textContent = meta || "";
+  modalHint.textContent = hint || "";
+  renderTable(columns, rows, onTapRow);
+  openModal();
+}
+
+function recalcAndRender(){ recompute(); renderAvance(); }
+
+function countSelected(sel){
+  const vals = getMultiValues(sel);
+  if(vals.includes("_ALL_")) return 0;
+  return vals.length;
+}
+function selLabel(sel, label){
+  const n = countSelected(sel);
+  return n<=0 ? `${label}=Todos` : `${label}=${n} sel`;
+}
+
+function renderAvance(){
+  const metaFilters = [
+    selLabel(selCliente, "Cliente"),
+    selLabel(selPrioridad, "Prioridad"),
+    selLabel(selObs, "Obs"),
+    selLabel(selPrensaAdv, "Prensa"),
+    selLabel(selMaquina, "Maq")
+  ].join(" | ");
+
+  advMeta.textContent =
+    `Fecha base: ${prettyDate(advFechaSel)} | Producción: ${prettyDate(ymdMinus1(advFechaSel))} + ${prettyDate(advFechaSel)} | ${metaFilters} | ${advA3Only ? "A3=ON" : "A3=OFF"}`;
+
+  if(viewMode === "DASH"){
+    const totalPendKg = advByPressPend.reduce((s,x)=>s+x.Kg,0);
+    const totalPendMat = advByPressPend.reduce((s,x)=>s+x.Matrices,0);
+
+    const totalCompKg = advByPressComp.reduce((s,x)=>s+x.Kg,0);
+    const totalCompMat = advByPressComp.reduce((s,x)=>s+x.Matrices,0);
+
+    const totalOverKg = advOverOrders.reduce((s,x)=>s+(x.overKg||0),0);
+
+    advDash.innerHTML = `
+      <div class="recCard tapRow" onclick="openPendResumen()">
+        <div class="recTop">
+          <div class="dtBig">⏳ Pendientes — Resumen por Prensa</div>
+          <div class="badgeSh">${fmt0(totalPendKg)} Kg</div>
+        </div>
+        <div class="miniGrid">
+          <div class="mini"><div class="l">Kg Pend</div><div class="v">${fmt0(totalPendKg)}</div></div>
+          <div class="mini"><div class="l">Matrices</div><div class="v">${fmt0(totalPendMat)}</div></div>
+          <div class="mini"><div class="l">Prensas</div><div class="v">${fmt0(advByPressPend.length)}</div></div>
+        </div>
+        <div class="bigLine mut">Pendiente = matriz NO cerrada (todas sus órdenes) → Kg = KGS_prog - KGS_prod.</div>
+      </div>
+
+      <div class="recCard tapRow" onclick="openCompResumen()">
+        <div class="recTop">
+          <div class="dtBig">✅ Completas — Resumen por Prensa</div>
+          <div class="badgeSh">${fmt0(totalCompKg)} Kg</div>
+        </div>
+        <div class="miniGrid">
+          <div class="mini"><div class="l">Kg (prog)</div><div class="v">${fmt0(totalCompKg)}</div></div>
+          <div class="mini"><div class="l">Matrices</div><div class="v">${fmt0(totalCompMat)}</div></div>
+          <div class="mini"><div class="l">Prensas</div><div class="v">${fmt0(advByPressComp.length)}</div></div>
+        </div>
+        <div class="bigLine mut">Completa = matriz con TODAS sus órdenes cerradas (cierre por PZS).</div>
+      </div>
+
+      <div class="recCard tapRow" onclick="openOverResumen()">
+        <div class="recTop">
+          <div class="dtBig">⚠️ Sobre-extrusión</div>
+          <div class="badgeSh">${fmt0(advOverOrders.length)} órd.</div>
+        </div>
+        <div class="miniGrid">
+          <div class="mini"><div class="l">Regla</div><div class="v">PzsProd &gt; %PZS</div></div>
+          <div class="mini"><div class="l">Kg Sobre</div><div class="v">${fmt0(totalOverKg)}</div></div>
+          <div class="mini"><div class="l">Nota</div><div class="v">KgProd - %KGS</div></div>
+        </div>
+        <div class="bigLine mut">Ruta: Prensa → Cliente → Prioridad → Matriz → Orden.</div>
+      </div>
+
+      <div class="recCard tapRow" onclick="openNoProgResumen()">
+        <div class="recTop">
+          <div class="dtBig">📌 Producido NO Programado — (Optima)</div>
+          <div class="badgeSh">${fmt0(advNoProgOrders.length)} órd.</div>
+        </div>
+        <div class="miniGrid">
+          <div class="mini"><div class="l">Órdenes</div><div class="v">${fmt0(advNoProgOrders.length)}</div></div>
+          <div class="mini"><div class="l">Kg</div><div class="v">${fmt0(advNoProgOrders.reduce((s,x)=>s+x.Kg,0))}</div></div>
+          <div class="mini"><div class="l">Pzs</div><div class="v">${fmt0(advNoProgOrders.reduce((s,x)=>s+x.Pzs,0))}</div></div>
+        </div>
+        <div class="bigLine mut">Fuente: Optima (2 días).</div>
+      </div>
+    `;
+    return;
+  }
+
+  if(viewMode === "CARDS"){
+    advCards.innerHTML = advByDie.map(d=>`
+      <div class="recCard tapRow" onclick="openDieOrders('${String(d.DIENUM).replace(/'/g,"\\'")}')">
+        <div class="recTop">
+          <div class="dtBig">Matriz: ${escHtml(d.DIENUM)}</div>
+          <div class="badgeSh">${d.estado}</div>
+        </div>
+        <div class="miniGrid">
+          <div class="mini"><div class="l">Órdenes</div><div class="v">${fmt0(d.ordTot)}</div></div>
+          <div class="mini"><div class="l">Cerradas</div><div class="v">${fmt0(d.ordCerr)}</div></div>
+          <div class="mini"><div class="l">Kg Pend</div><div class="v">${fmt0(d.KgPend)}</div></div>
+        </div>
+        <div class="bigLine mut">Toca para ver órdenes.</div>
+      </div>
+    `).join("");
+  }
+}
+
+/* ====== Drilldown Avance + Detalle Campo/Valor ====== */
+function openOrdenDetail(o){
+  openOrdenDetalleCampoValor({
+    orden: o.ORDEN,
+    prensa: o.PRENSA,
+    cliente: o.CLIENTE,
+    prio: o.PRIORIDAD,
+    matriz: o.DIENUM,
+    finish: o.FINISH || "-",
+    fechaProg: o.FECHA_PROG || "-",
+    kgProg: o.KGS_prog || 0,
+    kgProd: o.KGS_prod || 0,
+    kgPend: o.kgPendiente || 0,
+    pzsProg: o.PZS_prog || 0,
+    pzsProd: o.PZS_prod || 0,
+    estado: o.estado || "—",
+    obs: o.OBSERVACION || "(EN BLANCO)",
+    ruta: o.RUTA || "-",
+    maquina: o.MAQUINA || "-"
+  });
+}
+
+window.openDieOrders = function(die){
+  modalStack = [];
+  modalState = null;
+  btnBack.disabled = true;
+
+  const rows = advRowsOrden.filter(o=> (o.DIENUM||"SIN DIENUM") === die);
+  const kgPend = rows.reduce((s,x)=>s+(x.kgResumenPend||0),0);
+  const kgComp = rows.reduce((s,x)=>s+(x.kgResumenComp||0),0);
+
+  openModalTable(
+    `🧩 Matriz ${die} — Órdenes`,
+    `Órdenes: ${fmt0(rows.length)} | KgPend: ${fmt0(kgPend)} | KgComp (prog): ${fmt0(kgComp)}`,
+    "Toca una orden para ver detalle.",
+    [
+      {k:(r)=> r.ORDEN, label:"ORDEN", align:"left", w:"40%"},
+      {k:(r)=> r.PRENSA, label:"Prensa", align:"left", w:"26%"},
+      {k:(r)=> fmt0((r.kgResumenPend||0)+(r.kgResumenComp||0)), label:"Kg", align:"right", w:"16%"},
+      {k:(r)=> r.estado, label:"Estado", align:"left", w:"18%"},
+    ],
+    rows,
+    (r)=>{ pushState(); modalState = { render: ()=> openOrdenDetail(r) }; openOrdenDetail(r); }
+  );
+};
+
+/* ====== Resúmenes avance (pend/comp/over/no prog) ====== */
+window.openPendResumen = function(){
+  modalStack = []; modalState = null; btnBack.disabled = true;
+
+  const totKg = advByPressPend.reduce((s,x)=>s+x.Kg,0);
+  const totMat = advByPressPend.reduce((s,x)=>s+x.Matrices,0);
+  const rows = [{PRENSA:"TOTAL",Kg:totKg,Matrices:totMat,_rows:advRowsOrden.filter(o=>!o.cerrada)}, ...advByPressPend];
+
+  openModalTable(
+    "⏳ Pendientes — Resumen por Prensa",
+    `Kg Pend = KGS_prog - KGS_prod. Matriz pendiente si NO tiene todas sus órdenes cerradas.`,
+    "Toca una prensa para ver Clientes.",
+    [
+      {k:"PRENSA", label:"Prensa", align:"left", w:"46%"},
+      {k:(r)=> fmt0(r.Kg), label:"Kg Pend", align:"right", w:"27%"},
+      {k:(r)=> fmt0(r.Matrices), label:"Matrices", align:"right", w:"27%"},
+    ],
+    rows.map(r=>({PRENSA:r.PRENSA, Kg:r.Kg, Matrices:r.Matrices, _rows:r._rows})),
+    (r)=> {
+      if(!r._rows) return;
+      pushState();
+      modalState = { render: ()=> openClientesFromOrdenRows("⏳ Pendientes", r.PRENSA, r._rows) };
+      openClientesFromOrdenRows("⏳ Pendientes", r.PRENSA, r._rows);
+    }
+  );
+};
+
+window.openCompResumen = function(){
+  modalStack = []; modalState = null; btnBack.disabled = true;
+
+  const totKg = advByPressComp.reduce((s,x)=>s+x.Kg,0);
+  const totMat = advByPressComp.reduce((s,x)=>s+x.Matrices,0);
+  const rows = [{PRENSA:"TOTAL",Kg:totKg,Matrices:totMat,_rows:advRowsOrden.filter(o=>o.cerrada)}, ...advByPressComp];
+
+  openModalTable(
+    "✅ Completas — Resumen por Prensa",
+    `Matriz completa si TODAS sus órdenes están cerradas. Kg mostrado = KGS_prog.`,
+    "Toca una prensa para ver Clientes.",
+    [
+      {k:"PRENSA", label:"Prensa", align:"left", w:"46%"},
+      {k:(r)=> fmt0(r.Kg), label:"Kg (prog)", align:"right", w:"27%"},
+      {k:(r)=> fmt0(r.Matrices), label:"Matrices", align:"right", w:"27%"},
+    ],
+    rows.map(r=>({PRENSA:r.PRENSA, Kg:r.Kg, Matrices:r.Matrices, _rows:r._rows})),
+    (r)=> {
+      if(!r._rows) return;
+      pushState();
+      modalState = { render: ()=> openClientesFromOrdenRows("✅ Completas", r.PRENSA, r._rows) };
+      openClientesFromOrdenRows("✅ Completas", r.PRENSA, r._rows);
+    }
+  );
+};
+
+function openClientesFromOrdenRows(titlePrefix, prensa, ordenRows){
+  const isPend = titlePrefix.includes("Pend");
+  const totKg = ordenRows.reduce((s,x)=> s + (isPend ? (x.kgResumenPend||0) : (x.kgResumenComp||0)), 0);
+  const dies = new Set(ordenRows.map(x=>x.DIENUM).filter(Boolean)).size;
+
+  const groups = groupBy(
+    ordenRows,
+    r=>r.CLIENTE,
+    (r)=> isPend ? (r.kgResumenPend||0) : (r.kgResumenComp||0)
+  );
+
+  const rows = groups.map(g=>({
+    CLIENTE:g.key,
+    Matrices:g.dies.size,
+    Kg: g.kg,
+    _rows:g.rows
+  }));
+
+  openModalTable(
+    `${titlePrefix} — Clientes — ${prensa}`,
+    `Kg: ${fmt0(totKg)} | Matrices: ${fmt0(dies)}`,
+    "Toca un cliente para ver Prioridades.",
+    [
+      {k:"CLIENTE", label:"Cliente", align:"left", w:"48%"},
+      {k:(r)=> fmt0(r.Matrices), label:"Matr…", align:"right", w:"20%"},
+      {k:(r)=> fmt0(r.Kg), label:"Kg", align:"right", w:"32%"},
+    ],
+    [{CLIENTE:"TOTAL",Matrices:dies,Kg:totKg,_rows:ordenRows}, ...rows],
+    (r)=>{
+      if(!r._rows) return;
+      pushState();
+      modalState = { render: ()=> openPrioridadesFromOrdenRows(titlePrefix, prensa, r.CLIENTE, r._rows) };
+      openPrioridadesFromOrdenRows(titlePrefix, prensa, r.CLIENTE, r._rows);
+    }
+  );
+}
+
+function openPrioridadesFromOrdenRows(titlePrefix, prensa, cliente, ordenRows){
+  const isPend = titlePrefix.includes("Pend");
+  const totKg = ordenRows.reduce((s,x)=> s + (isPend ? (x.kgResumenPend||0) : (x.kgResumenComp||0)), 0);
+
+  const groups = groupBy(
+    ordenRows,
+    r=>r.PRIORIDAD,
+    (r)=> isPend ? (r.kgResumenPend||0) : (r.kgResumenComp||0)
+  );
+
+  const rows = groups.map(g=>({
+    PRIORIDAD:g.key,
+    Matrices:g.dies.size,
+    Kg:g.kg,
+    _rows:g.rows
+  }));
+
+  openModalTable(
+    `${titlePrefix} — Prioridades — ${prensa}`,
+    `Cliente: ${cliente} | Kg: ${fmt0(totKg)}`,
+    "Toca una prioridad para ver Matrices.",
+    [
+      {k:"PRIORIDAD", label:"Prioridad", align:"left", w:"48%"},
+      {k:(r)=> fmt0(r.Matrices), label:"Matr…", align:"right", w:"20%"},
+      {k:(r)=> fmt0(r.Kg), label:"Kg", align:"right", w:"32%"},
+    ],
+    [{PRIORIDAD:"TOTAL",Matrices:new Set(ordenRows.map(x=>x.DIENUM)).size,Kg:totKg,_rows:ordenRows}, ...rows],
+    (r)=>{
+      if(!r._rows) return;
+      pushState();
+      modalState = { render: ()=> openMatricesFromOrdenRows(titlePrefix, prensa, cliente, r.PRIORIDAD, r._rows) };
+      openMatricesFromOrdenRows(titlePrefix, prensa, cliente, r.PRIORIDAD, r._rows);
+    }
+  );
+}
+
+function openMatricesFromOrdenRows(titlePrefix, prensa, cliente, prioridad, ordenRows){
+  const isPend = titlePrefix.includes("Pend");
+  const totKg = ordenRows.reduce((s,x)=> s + (isPend ? (x.kgResumenPend||0) : (x.kgResumenComp||0)), 0);
+
+  const byDie = new Map();
+  for(const o of ordenRows){
+    const die = o.DIENUM || "SIN DIENUM";
+    if(!byDie.has(die)) byDie.set(die, {DIENUM:die, Ord:0, Kg:0, _rows:[]});
+    const d = byDie.get(die);
+    d.Ord += 1;
+    d.Kg += isPend ? (o.kgResumenPend||0) : (o.kgResumenComp||0);
+    d._rows.push(o);
+  }
+  const list = Array.from(byDie.values()).sort((a,b)=> b.Kg-a.Kg || b.Ord-a.Ord || a.DIENUM.localeCompare(b.DIENUM,"es",{numeric:true}));
+
+  openModalTable(
+    `${titlePrefix} — Matrices — ${prensa}`,
+    `Cliente: ${cliente} | Prioridad: ${prioridad} | Kg: ${fmt0(totKg)}`,
+    "Toca una matriz para ver Órdenes.",
+    [
+      {k:"DIENUM", label:"DIENUM", align:"left", w:"48%"},
+      {k:(r)=> fmt0(r.Ord), label:"Órd", align:"right", w:"20%"},
+      {k:(r)=> fmt0(r.Kg), label:"Kg", align:"right", w:"32%"},
+    ],
+    [{DIENUM:"TOTAL",Ord:ordenRows.length,Kg:totKg,_rows:ordenRows}, ...list],
+    (r)=>{
+      if(!r._rows) return;
+      pushState();
+      modalState = { render: ()=> openOrdenesList(titlePrefix, prensa, cliente, prioridad, r.DIENUM, r._rows) };
+      openOrdenesList(titlePrefix, prensa, cliente, prioridad, r.DIENUM, r._rows);
+    }
+  );
+}
+
+function openOrdenesList(titlePrefix, prensa, cliente, prioridad, die, ordenRows){
+  const isPend = titlePrefix.includes("Pend");
+  const totKg = ordenRows.reduce((s,x)=> s + (isPend ? (x.kgResumenPend||0) : (x.kgResumenComp||0)), 0);
+
+  const rows = ordenRows.slice()
+    .sort((a,b)=> a.ORDEN.localeCompare(b.ORDEN,"es",{numeric:true}))
+    .map(o=>({
+      ORDEN:o.ORDEN,
+      Kg: isPend ? (o.kgResumenPend||0) : (o.kgResumenComp||0),
+      Estado:o.estado,
+      _o:o
+    }));
+
+  openModalTable(
+    `${titlePrefix} — Órdenes — ${prensa}`,
+    `Cliente: ${cliente} | Prioridad: ${prioridad} | Matriz: ${die} | Kg: ${fmt0(totKg)}`,
+    "Toca una orden para ver detalle.",
+    [
+      {k:"ORDEN", label:"ORDEN", align:"left", w:"42%"},
+      {k:(r)=> fmt0(r.Kg), label:"Kg", align:"right", w:"20%"},
+      {k:"Estado", label:"Estado", align:"left", w:"38%"},
+    ],
+    rows,
+    (r)=>{
+      if(!r._o) return;
+      pushState();
+      modalState = { render: ()=> openOrdenDetail(r._o) };
+      openOrdenDetail(r._o);
+    }
+  );
+}
+
+/* ======================= Export CSV ======================= */
+function exportAvanceCSV(){
+  const rows = advRowsOrden || [];
+  if(!rows.length){ alert("No hay datos para exportar con los filtros actuales."); return; }
+
+  const headers = [
+    "ORDEN","DIENUM","CLIENTE","PRIORIDAD","PRENSA","MAQUINA","OBSERVACION","RUTA","FINISH","FECHA_PROG",
+    "KGS_prog","KGS_prod","PZS_prog","PZS_prod","PZS_allow","KGS_allow","over","overKg","estado",
+    "kgPendiente","kgResumenPend","kgResumenComp"
+  ];
+  const esc = (v)=> `"${String(v ?? "").replace(/"/g,'""')}"`;
+  const csv = [headers.join(","), ...rows.map(r => headers.map(h => esc(r[h])).join(","))].join("\n");
+
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `avance_detalle_${advFechaSel}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ===================== CARGA AVANCE ===================== */
+async function cargarAvance(){
+  hideAdvMsg();
+  advMeta.textContent = "Cargando PROGRAMAS + Producido (Optima)…";
+
+  try{
+    const meta = await fetchMeta().catch(()=> ({}));
+    programasRaw = await fetchProgramasLatest();
+
+    const f0 = ymdMinus1(advFechaSel);
+    const f1 = advFechaSel;
+    const rows = await fetchSierraRango(f0, f1);
+
+    prodRows2d = (rows||[]).map(r=>({
+      ...r,
+      MachineName: (r.MachineName ?? r.machineName ?? r.machine ?? "").toString(),
+      shift: (r.shift ?? r.Shift ?? r.turno ?? "").toString().trim(),
+      pc: (r.pc ?? r.Pc ?? r.PC ?? 0),
+      peso: (r.peso ?? r.Peso ?? r.PESO ?? r.kg ?? r.Kg ?? r.KG ?? 0),
+      sonum: r.sonum,
+      soitemnum: r.soitemnum,
+    }));
+
+    recalcAndRender();
+
+    const upd = meta?.updatedAt ? meta.updatedAt : "-";
+    advMeta.textContent = `✅ Programas: ${fmt0(programasRaw.length)} | Producción regs (2 días): ${fmt0(prodRows2d.length)} | Última carga programas: ${upd}`;
+
+    if(programasRaw.length===0) showAdvMsg("PROGRAMAS llegó vacío. Revisa el Apps Script (action=programas).");
+    if(prodRows2d.length===0) showAdvMsg("Optima (Sierra) devolvió 0 registros para 2 días. Revisa fechas/API.");
+
+  }catch(err){
+    console.error(err);
+    showAdvMsg(err?.message || String(err));
+    advMeta.textContent = "❌ Error cargando Avance.";
+  }
+}
+
+/* Cargar avance la primera vez que entras */
+tabAdv.addEventListener("click", ()=>{
+  if(!programasRaw.length) cargarAvance();
+});
+
+/* =========================================================
+   ================== IMG ESTADOS (OCR + PNG) =================
+   (igual robusto)
+   ========================================================= */
+const imgFile = document.getElementById("imgFile");
+const btnOcr = document.getElementById("btnOcr");
+const btnGenImg = document.getElementById("btnGenImg");
+const imgPreview = document.getElementById("imgPreview");
+const imgMeta = document.getElementById("imgMeta");
+const imgMsg = document.getElementById("imgMsg");
+const imgTableWrap = document.getElementById("imgTableWrap");
+const tblEditBody = document.getElementById("tblEditBody");
+
+let imgObj = null;
+let ocrRows = []; // {orden, y, boxH, estadoAuto, estadoEdit}
+
+function showImgMsg(t){ imgMsg.style.display="block"; imgMsg.textContent = "⚠️ " + t; }
+function hideImgMsg(){ imgMsg.style.display="none"; imgMsg.textContent=""; }
+
+function estadoTag(estado){
+  const s = String(estado||"").toUpperCase();
+  if(s.includes("CERR")) return `<span class="tagOk">${escHtml(estado)}</span>`;
+  if(s.includes("PARC")) return `<span class="tagBad">${escHtml(estado)}</span>`;
+  if(s.includes("SIN")) return `<span class="tagMut">${escHtml(estado)}</span>`;
+  return `<span class="tagMut">${escHtml(estado||"-")}</span>`;
+}
+
+function findEstadoInApp(orden){
+  const r = advRowsOrden.find(x=> String(x.ORDEN).trim() === String(orden).trim());
+  if(!r) return "NO EN PROGRAMAS";
+  return r.estado || "—";
+}
+
+imgFile.addEventListener("change", async (e)=>{
+  hideImgMsg();
+  ocrRows = [];
+  tblEditBody.innerHTML = "";
+  imgTableWrap.style.display = "none";
+
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+
+  const url = URL.createObjectURL(f);
+  const im = new Image();
+  im.onload = ()=>{
+    imgObj = im;
+    imgPreview.src = url;
+    imgPreview.style.display = "block";
+    imgMeta.textContent = `Imagen cargada: ${im.naturalWidth}x${im.naturalHeight}. Presiona “LEER (OCR)”.`;
+  };
+  im.onerror = ()=> showImgMsg("No pude abrir la imagen.");
+  im.src = url;
+});
+
+function makeOcrCanvasFromImage(img, maxW=1600, preprocess=false){
+  const canvas = document.createElement("canvas");
+  const scale = Math.min(1, maxW / img.naturalWidth);
+  canvas.width = Math.round(img.naturalWidth * scale);
+  canvas.height = Math.round(img.naturalHeight * scale);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  if(!preprocess) return {canvas, scale};
+
+  const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+  const d = imgData.data;
+
+  const contrast = 35;
+  const factor = (259*(contrast+255))/(255*(259-contrast));
+
+  let sum = 0, cnt = 0;
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i], g=d[i+1], b=d[i+2];
+    const y = (0.299*r + 0.587*g + 0.114*b);
+    sum += y; cnt++;
+  }
+  const mean = cnt ? (sum/cnt) : 140;
+  const thr = Math.max(90, Math.min(190, mean*0.92));
+
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i], g=d[i+1], b=d[i+2];
+    r = factor*(r-128)+128;
+    g = factor*(g-128)+128;
+    b = factor*(b-128)+128;
+    const y = (0.299*r + 0.587*g + 0.114*b);
+    const v = (y > thr) ? 255 : 0;
+    d[i]=d[i+1]=d[i+2]=v;
+    d[i+3]=255;
+  }
+  ctx.putImageData(imgData,0,0);
+  return {canvas, scale};
+}
+
+function extractOrdersFromTesseractWords(words){
+  if(!words.length) return [];
+  words.sort((a,b)=> a.y0-b.y0 || a.x0-b.x0);
+  const heights = words.map(w=>w.h).filter(h=>h>0).sort((a,b)=>a-b);
+  const medH = heights.length ? heights[Math.floor(heights.length*0.5)] : 14;
+  const tol = Math.max(10, Math.round(medH*0.75));
+
+  const lines = [];
+  for(const w of words){
+    let line = lines.find(L=> Math.abs(L.y - w.y0) <= tol);
+    if(!line){
+      line = { y: w.y0, words: [] };
+      lines.push(line);
+    }
+    line.words.push(w);
+    line.y = (line.y*0.65 + w.y0*0.35);
+  }
+
+  const found = [];
+  const seen = new Set();
+  const rx = /\b\d{5,}-\d{1,5}\b/g;
+
+  for(const L of lines){
+    L.words.sort((a,b)=> a.x0-b.x0);
+    const lineText = L.words.map(x=>x.text).join(" ");
+    let m = lineText.match(rx);
+    if(!m){
+      const compact = L.words.map(x=>x.text).join("").replace(/\s+/g,"");
+      m = compact.match(rx);
+    }
+    if(!m) continue;
+
+    for(const ord of m){
+      if(seen.has(ord)) continue;
+      seen.add(ord);
+
+      const ys = L.words.map(x=> (x.y0 + x.y1)/2);
+      const y = ys.reduce((s,v)=>s+v,0)/ys.length;
+      const hh = L.words.reduce((s,x)=>s+x.h,0)/Math.max(1,L.words.length);
+
+      found.push({
+        orden: ord,
+        y,
+        boxH: hh,
+        estadoAuto: findEstadoInApp(ord),
+        estadoEdit: findEstadoInApp(ord)
+      });
+    }
+  }
+
+  found.sort((a,b)=> a.y-b.y);
+  return found;
+}
+
+async function runOcrPass(canvas){
+  const { data } = await Tesseract.recognize(canvas, "spa+eng", {
+    logger: ()=>{},
+    tessedit_pageseg_mode: "6",
+    tessedit_char_whitelist: "0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  });
+
+  const words = (data.words || [])
+    .filter(w=> (w.text||"").trim().length>0)
+    .map(w=>({
+      text: (w.text||"").trim(),
+      x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1,
+      h: (w.bbox.y1 - w.bbox.y0)
+    }));
+
+  return extractOrdersFromTesseractWords(words);
+}
+
+btnOcr.addEventListener("click", async ()=>{
+  hideImgMsg();
+  if(!imgObj){ showImgMsg("Primero sube una imagen."); return; }
+  if(!advRowsOrden.length){
+    showImgMsg("Primero carga AVANCE (CARGAR) para tener los estados. Luego vuelve a OCR.");
+    return;
+  }
+
+  imgMeta.textContent = "OCR en proceso… (puede tardar).";
+  btnOcr.disabled = true;
+
+  try{
+    const pass1 = makeOcrCanvasFromImage(imgObj, 1600, false);
+    let found = await runOcrPass(pass1.canvas);
+
+    if(found.length < 2){
+      const pass2 = makeOcrCanvasFromImage(imgObj, 1600, true);
+      const found2 = await runOcrPass(pass2.canvas);
+      if(found2.length > found.length) found = found2;
+    }
+
+    ocrRows = found;
+
+    if(!ocrRows.length){
+      showImgMsg("No pude detectar órdenes tipo 156786-7. Prueba con otra imagen más nítida o recorta solo la tabla.");
+      imgMeta.textContent = "OCR terminado (0 órdenes detectadas).";
+      return;
+    }
+
+    renderOcrEditTable();
+    imgMeta.textContent = `OCR listo: ${fmt0(ocrRows.length)} órdenes detectadas. Puedes editar estados y luego “GENERAR IMAGEN”.`;
+  }catch(err){
+    console.error(err);
+    showImgMsg("Error OCR: " + (err?.message || err));
+  }finally{
+    btnOcr.disabled = false;
+  }
+});
+
+function renderOcrEditTable(){
+  tblEditBody.innerHTML = "";
+  imgTableWrap.style.display = "";
+  for(const row of ocrRows){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escHtml(row.orden)}</td>
+      <td>
+        <input class="inpMini" value="${escHtml(row.estadoEdit||"")}" data-ord="${escHtml(row.orden)}" />
+        <div style="margin-top:6px;">${estadoTag(row.estadoAuto)}</div>
+      </td>
+      <td class="right">
+        <button class="pillBtn" data-fill="${escHtml(row.orden)}">USAR AUTO</button>
+      </td>
+    `;
+    tblEditBody.appendChild(tr);
+  }
+
+  tblEditBody.querySelectorAll("input.inpMini").forEach(inp=>{
+    inp.addEventListener("input", (e)=>{
+      const ord = e.target.getAttribute("data-ord");
+      const v = e.target.value;
+      const r = ocrRows.find(x=>x.orden===ord);
+      if(r) r.estadoEdit = v;
+    });
+  });
+
+  tblEditBody.querySelectorAll("button[data-fill]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      const ord = b.getAttribute("data-fill");
+      const r = ocrRows.find(x=>x.orden===ord);
+      if(!r) return;
+      r.estadoEdit = r.estadoAuto;
+      const inp = tblEditBody.querySelector(`input[data-ord="${CSS.escape(ord)}"]`);
+      if(inp) inp.value = r.estadoEdit;
+    });
+  });
+}
+
+function sampleAvgColor(ctx, x, y, w, h){
+  try{
+    const img = ctx.getImageData(x,y,w,h).data;
+    let r=0,g=0,b=0,c=0;
+    for(let i=0;i<img.length;i+=4){
+      r += img[i]; g += img[i+1]; b += img[i+2];
+      c++;
+    }
+    r = Math.round(r/c); g=Math.round(g/c); b=Math.round(b/c);
+    return `rgb(${r},${g},${b})`;
+  }catch(_){
+    return "rgb(40,70,90)";
+  }
+}
+
+btnGenImg.addEventListener("click", async ()=>{
+  hideImgMsg();
+  if(!imgObj){ showImgMsg("Primero sube una imagen."); return; }
+  if(!ocrRows.length){ showImgMsg("Primero corre OCR para detectar órdenes."); return; }
+
+  try{
+    const colW = Math.max(220, Math.round(imgObj.naturalWidth * 0.22));
+    const out = document.createElement("canvas");
+    out.width = imgObj.naturalWidth + colW;
+    out.height = imgObj.naturalHeight;
+
+    const ctx = out.getContext("2d");
+    ctx.drawImage(imgObj, 0, 0);
+
+    const tmp = document.createElement("canvas");
+    tmp.width = imgObj.naturalWidth;
+    tmp.height = imgObj.naturalHeight;
+    const tctx = tmp.getContext("2d");
+    tctx.drawImage(imgObj, 0, 0);
+
+    const headColor = sampleAvgColor(tctx, Math.min(20,tmp.width-21), Math.min(10,tmp.height-11), 80, 40);
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(imgObj.naturalWidth, 0, colW, imgObj.naturalHeight);
+
+    const headerH = 64;
+    ctx.fillStyle = headColor;
+    ctx.fillRect(imgObj.naturalWidth, 0, colW, headerH);
+
+    ctx.fillStyle = "white";
+    ctx.font = `900 22px Arial`;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.fillText("ESTADO APP", imgObj.naturalWidth + colW/2, headerH/2);
+
+    const ocrH = Math.round(imgObj.naturalHeight * Math.min(1, 1600 / imgObj.naturalWidth));
+    const yToNat = (y)=> (y / Math.max(1, ocrH)) * imgObj.naturalHeight;
+    const hToNat = (h)=> (h / Math.max(1, ocrH)) * imgObj.naturalHeight;
+
+    for(const r of ocrRows){
+      const y = yToNat(r.y);
+      const h = Math.max(30, hToNat(r.boxH || 16) * 1.45);
+
+      const estado = String(r.estadoEdit || "").trim() || "—";
+      const up = estado.toUpperCase();
+      let fill = "#111";
+      if(up.includes("CERR")) fill = "#0f7a3a";
+      else if(up.includes("PARC")) fill = "#a11b1b";
+      else if(up.includes("SIN")) fill = "#333";
+      else if(up.includes("NO EN")) fill = "#444";
+
+      ctx.fillStyle = fill;
+      ctx.font = `900 ${Math.max(16, Math.round(h*0.42))}px Arial`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        estado.length>22 ? (estado.slice(0,22)+"…") : estado,
+        imgObj.naturalWidth + colW/2,
+        y
+      );
+    }
+
+    ctx.strokeStyle = "rgba(0,0,0,.35)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(imgObj.naturalWidth, 0, colW, imgObj.naturalHeight);
+
+    const filename = `imagen_estados_${advFechaSel}.png`;
+    const blob = await new Promise(res=> out.toBlob(res, "image/png"));
+    if(!blob) throw new Error("No pude crear PNG.");
+
+    const file = new File([blob], filename, {type:"image/png"});
+    if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+      await navigator.share({files:[file], title: "Imagen con estados"});
+    }else{
+      const a = document.createElement("a");
+      const u = URL.createObjectURL(blob);
+      a.href = u;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(u), 1200);
+    }
+  }catch(err){
+    console.error(err);
+    showImgMsg("Error generando imagen: " + (err?.message || err));
+  }
+});
+</script>
+</body>
+</html>
